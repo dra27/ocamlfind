@@ -512,12 +512,12 @@ check_library () {
 generated_META='stdlib'
 numtop=''
 
-if ! check_library unix 'possible since 4.08' unix.cmi unix/unix.cmi; then
+if ! check_library unix 'possible since 4.08' unix/unix.cmi unix.cmi; then
     echo "configure: ocamlfind requires OCaml's Unix library" 1>&2
     exit 1
 fi
 
-check_library dynlink '' dynlink.cmi dynlink/dynlink.cmi
+check_library dynlink '' dynlink/dynlink.cmi dynlink.cmi
 check_library bigarray 'possible since 4.08'
 check_library compiler-libs '' 'compiler-libs'
 check_library dbm 'normal since 4.00'
@@ -529,7 +529,7 @@ check_library raw_spacetime 'normal since 4.12' raw_spacetime_lib.cmxa
 check_library threads '' threads/thread.cmi vmthreads/thread.cmi;
 
 # Need to know if str and labltk are available for the toolbox
-if check_library str 'possible since 4.08' str.cmi str/str.cmi; then
+if check_library str 'possible since 4.08' str/str.cmi str.cmi; then
     have_str=1
 else
     have_str=0
