@@ -122,7 +122,6 @@ ocamlfind_config=""
 with_toolbox=0
 with_topfind=1
 with_camlp4=1
-with_relative_paths=0
 custom=-custom
 system=""
 sh=""
@@ -139,7 +138,6 @@ while [ "$#" != "0" ]; do
 	          shift 2
 		  ;;
         -config) ocamlfind_config=$2
-		 with_relative_paths=0
 	         shift 2
 		 ;;
         -no-custom) custom=
@@ -154,10 +152,6 @@ while [ "$#" != "0" ]; do
 	-with-toolbox) with_toolbox=1
 	         shift
 		 ;;
-	-with-relative-paths-at) with_relative_paths=1
-                                 ocaml_prefix=$2
-	                         shift 2
-		                 ;;
 	-no-topfind) with_topfind=0
 	         shift
 		 ;;
@@ -169,21 +163,20 @@ while [ "$#" != "0" ]; do
 		 exit 0
 		 ;;
         -h|-help|--help) echo "usage: configure [options]" 1>&2
-                 echo "  -bindir path                  where binaries are installed" 1>&2
-                 echo "  -mandir path                  where manual pages are installed" 1>&2
-                 echo "  -sitelib path                 set the location of the site-specific packages" 1>&2
-                 echo "  -config path                  set the location of the configuration file" 1>&2
-                 echo "  -no-custom                    don't link in custom runtime mode" 1>&2
-                 echo "  -system <systype>             override system type (esp. mingw and win32)" 1>&2
-                 echo "  -with-toolbox                 also build the toolbox" 1>&2
-                 echo "  -with-relative-paths-at path  load configuration relative to the installation path" 1>&2
-                 echo "  -no-topfind                   don't install topfind script into stdlib directory" 1>&2
-                 echo "  -no-camlp4                    don't install the camlp4 META file" 1>&2
-                 exit
-                 ;;
-         *)      echo "configure: run 'configure -h' to get help" 1>&2
-                 exit 1
-                 ;;
+		  echo "  -bindir path         where binaries are installed" 1>&2
+		  echo "  -mandir path         where manual pages are installed" 1>&2
+		  echo "  -sitelib path        set the location of the site-specific packages" 1>&2
+                  echo "  -config path         set the location of the configuration file" 1>&2
+                  echo "  -no-custom           don't link in custom runtime mode" 1>&2
+		  echo "  -system <systype>    override system type (esp. mingw and win32)" 1>&2
+		  echo "  -with-toolbox        also build the toolbox" 1>&2
+		  echo "  -no-topfind          don't install topfind script into stdlib directory" 1>&2
+		  echo "  -no-camlp4           don't install the camlp4 META file" 1>&2
+		  exit
+		  ;;
+         *)       echo "configure: run 'configure -h' to get help" 1>&2
+		  exit 1
+		  ;;
     esac
 done
 
@@ -741,16 +734,6 @@ if [ $cbytes -gt 0 ]; then
     ocamlfind_archives="bytes.cma ${ocamlfind_archives}"
 fi
 
-relative_site_lib=$(echo "${ocaml_sitelib}" | sed -e "s#^${ocaml_prefix}#\$PREFIX#")
-
-if [ $with_relative_paths -gt 0 ]; then
-    # if configured with relative paths we add the relative path to the search path
-    relative_paths="true"
-    ocamlpath="${relative_site_lib}${path_sep}${ocamlpath}"
-else
-    relative_paths="false"
-fi
-
 {
     echo "# Makefile.config written by configure"
     echo "OCAML_CORE_STDLIB=${ocaml_core_stdlib}"
@@ -771,8 +754,6 @@ fi
     echo "CUSTOM=${custom}"
     echo "PARTS=${parts}"
     echo "INSTALL_TOPFIND=${with_topfind}"
-    echo "RELATIVE_PATHS=${relative_paths}"
-    echo "RELATIVE_OCAML_SITELIB=${relative_site_lib}" | sed -e "s/\\\$/\$\$/"
     echo "USE_CYGPATH=${use_cygpath}"
     echo "HAVE_NATDYNLINK=${have_natdynlink}"
     echo "VERSION=${version}"
@@ -793,7 +774,6 @@ fi
     echo "INSTALLFILE = install -c"
     echo "# change to INSTALLFILE = cp   when BSD install is unavailable"
 } > Makefile.config
-
 echo "SITELIB_META=${generated_META}" >Makefile.packages
 
 # All OK

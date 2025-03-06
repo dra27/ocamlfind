@@ -22,9 +22,9 @@ OCAMLLEX = ocamllex
 #CAMLP4O =  camlp4 pa_o.cmo pa_op.cmo pr_dump.cmo --
 
 
-OBJECTS        = fl_compat.cmo fl_split.cmo findlib_config.cmo \
-		 fl_metatoken.cmo fl_meta.cmo fl_metascanner.cmo fl_topo.cmo \
-		 fl_package_base.cmo findlib.cmo fl_args.cmo fl_lint.cmo
+OBJECTS        = findlib_config.cmo fl_split.cmo fl_metatoken.cmo fl_meta.cmo \
+		 fl_metascanner.cmo fl_topo.cmo fl_package_base.cmo \
+	         findlib.cmo fl_args.cmo fl_lint.cmo
 TOBJECTS       = topfind.cmo
 
 XOBJECTS       = $(OBJECTS:.cmo=.cmx)
@@ -94,7 +94,6 @@ findlib_config.ml: findlib_config.mlp $(TOP)/Makefile.config
 	cat findlib_config.mlp | \
 	        $(SH) $(TOP)/tools/patch '@CONFIGFILE@' '$(OCAMLFIND_CONF)' | \
 	        $(SH) $(TOP)/tools/patch '@STDLIB@' '$(OCAML_CORE_STDLIB)' | \
-	        $(SH) $(TOP)/tools/patch '@RELATIVE_PATHS@' '$(RELATIVE_PATHS)' | \
 		sed -e 's;@AUTOLINK@;$(OCAML_AUTOLINK);g' \
 		    -e 's;@SYSTEM@;$(SYSTEM);g' \
 		     >findlib_config.ml
@@ -107,20 +106,11 @@ topfind.ml: topfind.ml.in
 			> topfind.ml ;                                   \
 	fi
 
-topfind.compat.in: topfind.in
-	if [ "$(OCAML_REMOVE_DIRECTORY)" = "1" ]; then                        \
-		cp $< $@;                                                     \
-	else                                                                  \
-		sed -e '/REMOVE_DIRECTORY_BEGIN/,/REMOVE_DIRECTORY_END/ d' $< \
-			> $@ ;                                                \
-	fi
-
-topfind: topfind.compat.in
+topfind: topfind_rd$(OCAML_REMOVE_DIRECTORY).p
 	USE_CYGPATH="$(USE_CYGPATH)"; \
 	export USE_CYGPATH; \
-	cat topfind.compat.in | \
-	        $(SH) $(TOP)/tools/patch '@SITELIB@' '$(OCAML_SITELIB)' | \
-	        $(SH) $(TOP)/tools/patch '@RELATIVE_PATHS@' '$(RELATIVE_PATHS)' \
+	cat topfind_rd$(OCAML_REMOVE_DIRECTORY).p | \
+	        $(SH) $(TOP)/tools/patch '@SITELIB@' '$(OCAML_SITELIB)' \
 	    	    >topfind
 
 num_top.cma: $(NUMTOP_OBJECTS)
@@ -128,7 +118,7 @@ num_top.cma: $(NUMTOP_OBJECTS)
 
 clean:
 	rm -f *.cmi *.cmo *.cma *.cmx *.a *.lib *.o *.obj *.cmxa \
-	  fl_meta.ml findlib_config.ml topfind.ml topfind.compat.in topfind \
+	  fl_meta.ml findlib_config.ml topfind.ml topfind \
 	  ocamlfind$(EXEC_SUFFIX) ocamlfind_opt$(EXEC_SUFFIX)
 
 install: all
