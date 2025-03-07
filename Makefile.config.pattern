@@ -24,6 +24,15 @@ OCAML_THREADS=vm
 OCAML_SITELIB=/usr/local/lib/ocaml/site-lib
 
 #----------------------------------------------------------------------
+# For Relocatable Findlib, the path of site-lib relative to the
+# directory containing findlib.conf and the path of site-lib relative
+# to the OCaml Standard Library directory. For normal Findlib, both
+# equal to $(OCAML_SITELIB)
+#----------------------------------------------------------------------
+OCAML_SITELIB_FROM_CONFIG=$(OCAML_SITELIB)
+OCAML_SITELIB_FROM_STDLIB=$(OCAML_SITELIB)
+
+#----------------------------------------------------------------------
 # What the path setting will be
 #----------------------------------------------------------------------
 FINDLIB_PATH=/usr/local/lib/ocaml/site-lib:/usr/local/lib/ocaml
@@ -38,6 +47,13 @@ OCAMLFIND_MAN=/usr/local/man
 # The absolute location of the configuration file
 #----------------------------------------------------------------------
 OCAMLFIND_CONF=/usr/local/etc/ocamlfind.conf
+
+#----------------------------------------------------------------------
+# For Relocatable Findlib, the location of the configuration file
+# relative to the OCaml Standard Library directory. For normal Findlib,
+# equal to $(OCAMLFIND_CONF)
+#----------------------------------------------------------------------
+OCAMLFIND_CONF_FROM_STDLIB=$(OCAMLFIND_CONF)
 
 #----------------------------------------------------------------------
 # Autolinking is usually on
@@ -64,6 +80,11 @@ PARTS=findlib findlib-toolbox
 # Whether the "topfind" script is installed in $(OCAML_CORE_STDLIB):
 #----------------------------------------------------------------------
 INSTALL_TOPFIND=1
+
+#----------------------------------------------------------------------
+# Whether Relocatable Findlib is being built
+#----------------------------------------------------------------------
+IS_RELOCATABLE=0
 
 #----------------------------------------------------------------------
 # Whether make install should update Makefile.packages just before
