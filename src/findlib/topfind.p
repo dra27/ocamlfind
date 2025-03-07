@@ -6,9 +6,9 @@
 
 #directory "@SITELIB@/findlib";;
   (* OCaml-4.00 requires to have #directory before we load anything *)
-
-#directory "+compiler-libs";;
-  (* For OCaml-4.00. This directory will be later removed from path *)
+4x:
+4x:#directory "+compiler-libs";;
+4x:  (* For OCaml-4.00. This directory will be later removed from path *)
 
 (* First test whether findlib_top is already loaded. If not, load it now.
  * The test works by executing the toplevel phrase "Topfind.reset" and
@@ -33,13 +33,8 @@ if not(exec_test "Topfind.reset;;") then (
   Topdirs.dir_load Format.err_formatter ("@SITELIB@/findlib/findlib_top." ^ suffix);
 );
 ;;
-
-#remove_directory "+compiler-libs";;
-
-(* Old: *)
-(* #load "@SITELIB@/findlib/findlib.cma";; *)
-(* #load "@SITELIB@/findlib/findlib_top.cma";; *)
-
+4x:
+4x:#remove_directory "+compiler-libs";;
 
 (* The following is always executed. It is harmless if findlib was already
  * initialized

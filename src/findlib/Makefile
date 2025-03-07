@@ -106,10 +106,16 @@ topfind.ml: topfind.ml.in
 			> topfind.ml ;                                   \
 	fi
 
-topfind: topfind_rd$(OCAML_REMOVE_DIRECTORY).p
+topfind_rd0.p: topfind.p
+	sed -e '/^4x:/d' $< > $@
+
+topfind_rd1.p: topfind.p
+	sed -e 's/^4x://' $< > $@
+
+topfind: topfind_rd$(OCAML_REMOVE_DIRECTORY).p $(TOP)/Makefile.config
 	USE_CYGPATH="$(USE_CYGPATH)"; \
 	export USE_CYGPATH; \
-	cat topfind_rd$(OCAML_REMOVE_DIRECTORY).p | \
+	cat $< | \
 	        $(SH) $(TOP)/tools/patch '@SITELIB@' '$(OCAML_SITELIB)' \
 	    	    >topfind
 
@@ -118,7 +124,7 @@ num_top.cma: $(NUMTOP_OBJECTS)
 
 clean:
 	rm -f *.cmi *.cmo *.cma *.cmx *.a *.lib *.o *.obj *.cmxa \
-	  fl_meta.ml findlib_config.ml topfind.ml topfind \
+	  fl_meta.ml findlib_config.ml topfind.ml topfind_rd?.p topfind \
 	  ocamlfind$(EXEC_SUFFIX) ocamlfind_opt$(EXEC_SUFFIX)
 
 install: all
