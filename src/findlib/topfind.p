@@ -20,16 +20,17 @@ let exec_test s =
   with
       _ -> false
 in
-let findlib_directory = "@SITELIB@/findlib" in
+let sitelib_directory = "@SITELIB@" in
 rx:let module Defs = struct
 rx:  external standard_library_default : unit -> string = "%standard_library_default"
 rx:  external stdlib_dirs : string -> string * string option = "caml_sys_get_stdlib_dirs"
 rx:end in
 rx:let stdlib, _ = Defs.stdlib_dirs (Defs.standard_library_default ()) in
-rx:let findlib_directory = Filename.concat stdlib findlib_directory in
+rx:let sitelib_directory = Filename.concat stdlib sitelib_directory in
 (* This must be executed before exec_test is called, as executing Topfind.reset
    when topfind.cmi is not in the search path creates a permanent error in
    OCaml 4.00+ and Topfind.add_predicates fails even after loading the .cma *)
+let findlib_directory = Filename.concat sitelib_directory "findlib" in
 let () = Topdirs.dir_directory findlib_directory in
 let is_native =
   (* one of the few observable differences... *)

@@ -67,7 +67,7 @@ get_stdlib () {
     # Older versions of ocamlc do not accept -where, so there is a fallback
     # method:
     ocamlc -where 2>/dev/null | tr -d '\r' || {
-	ocamlc -v | sed -n -e "/Standard library directory/s/.*: \(.*\)/\1/p"; }
+	ocamlc -v | tr -d '\r' | sed -n -e "/Standard library directory/s/.*: \(.*\)/\1/p"; }
 }
 
 
@@ -103,7 +103,7 @@ get_lib_file () {
 cygpath_to_unix () {
     v=$1
     eval "p=\"\$$v\""
-    p="$(cygpath -w -s "$p")"
+    p="$(cygpath -w "$p")"
     p="$(cygpath -u "$p")"
     eval "$v=\"$p\""
 }
@@ -241,15 +241,20 @@ if [ -z "$system" ]; then
 fi
 
 path_sep=':'
+dir_sep='/'
 case "$system" in
     mingw|mingw64)
 	if [ "$pure_mingw" = "no" ];  then
 	    # CYGWIN
 	    use_cygpath=1
 	fi
+        path_sep=';'
+        dir_sep='\'
 	;;
-    win32) use_cygpath=1;;
-    win64) use_cygpath=1;;
+    win32|win64)
+      use_cygpath=1
+      path_sep=';'
+      dir_sep='\';;
     # A quirk of history means OCAMLPATH uses ; on Cygwin
     cygwin) path_sep=';';;
 esac
@@ -264,18 +269,18 @@ fi
 ######################################################################
 # Find out standard library location
 
-ocaml_core_stdlib=$(get_stdlib)
-ocaml_major="$(ocamlc -vnum 2>/dev/null | cut -f1 -d.)"
-if [ ! -d "$ocaml_core_stdlib" ]; then
-   echo "configure: cannot determine ocaml's standard library directory" 1>&2
-    exit 1
-fi
-if [ -z "$ocaml_major" ]; then ocaml_major=3; fi
-
+ocaml_core_stdlib_native=$(get_stdlib)
+ocaml_core_stdlib="$ocaml_core_stdlib_native"
 if [ ${use_cygpath} -gt 0 ]; then
     cygpath_to_unix ocaml_core_stdlib
     # This makes ocaml_core_stdlib a Unix-type path
 fi
+if [ ! -d "$ocaml_core_stdlib" ]; then
+   echo "configure: cannot determine ocaml's standard library directory" 1>&2
+    exit 1
+fi
+ocaml_major="$(ocamlc -vnum 2>/dev/null | cut -f1 -d.)"
+if [ -z "$ocaml_major" ]; then ocaml_major=3; fi
 
 # Find out the directory where ocamlc is:
 
@@ -285,6 +290,9 @@ ocaml_core_bin=$(dirname "${ocamlc}")
 # Set the directory of ocamlfind:
 
 test -n "$ocamlfind_bin" || ocamlfind_bin="$ocaml_core_bin"
+if [ ${use_cygpath} -gt 0 ]; then
+    cygpath_to_unix ocamlfind_bin
+fi
 
 # Guess the right directory for the configuration file:
 
@@ -303,6 +311,14 @@ if [ -z "${ocamlfind_config}" ]; then
             # Fallback value
             ;;
     esac
+    if [ ${use_cygpath} -gt 0 ]; then
+        ocamlfind_config_native="$(cygpath -w "$ocamlfind_config")"
+    fi
+else
+    ocamlfind_config_native="$ocamlfind_config"
+    if [ ${use_cygpath} -gt 0 ]; then
+        cygpath_to_unix ocamlfind_config
+    fi
 fi
 
 # Set site-lib directory:
@@ -314,13 +330,16 @@ ocamlfind_conf_from_stdlib=''
 if [ -z "$ocaml_sitelib" ]; then
     case "$ocaml_core_stdlib" in
 	/opt/*)		ocaml_sitelib=$(dirname "${ocaml_core_stdlib}")/site-lib
+                        ocaml_sitelib_native="$(dirname "$ocaml_core_stdlib_native")${dir_sep}site-lib"
 			;;
 	*)		ocaml_sitelib="${ocaml_core_stdlib}/site-lib"
+                        ocaml_sitelib_native="${ocaml_core_stdlib_native}${dir_sep}site-lib"
 			;;
     esac
-    ocaml_sitelib_rel="$ocaml_sitelib"
-    ocaml_sitelib_from_stdlib="$ocaml_sitelib"
+    ocaml_sitelib_from_stdlib="$ocaml_sitelib_native"
+    ocamlfind_conf_destdir="$ocaml_sitelib_native"
 else
+    ocaml_sitelib_native="$ocaml_sitelib"
     if [ ${use_cygpath} -gt 0 ]; then
         cygpath_to_unix ocaml_sitelib
     fi
@@ -338,19 +357,27 @@ else
                 non_relocatable_reason="the compiler does not support it"
             # 2. Check that $ocamlfind_bin and $ocaml_core_bin are the same directory
             elif [ "x$(cd "$ocamlfind_bin" 2>/dev/null && pwd)" != "x$(cd "$ocaml_core_bin" 2>/dev/null && pwd)" ]; then
+                echo "We have \$ocamlfind_bin = $ocamlfind_bin"
+                echo "We have \$ocaml_core_bin = $ocaml_core_bin"
                 non_relocatable_reason="ocamlfind isn't being installed with the compiler"
             # 3. Check that $ocaml_core_stdlib is a directory inside $(dirname $ocamlfind_config)
             elif [ "x$d1" = "x${d1#$d2}" ] || [ "x$d3" = "x{$d3##/}" ]; then
+                echo "\$d1 = $d1"
+                echo "\$d2 = $d2"
+                echo "\$d3 = $d3"
                 non_relocatable_reason="findlib.conf and the Standard Library don't share a common path"
             else
                 relocatable_findlib=1
                 relocatable_ocaml_flag="-set-runtime-default 'standard_library_default=$ocaml_core_stdlib_relative'"
                 ocaml_core_stdlib_suffix="$d3"
-                ocaml_sitelib_rel="${ocaml_sitelib%%/}"
+                ocamlfind_conf_destdir="$ocaml_sitelib_native"
                 ocaml_sitelib="$d2"
                 ocaml_config_from_stdlib="$(echo "$d3" | sed -e 's|[^/]\+|..|g')"
                 ocaml_config_from_stdlib="${ocaml_config_from_stdlib##/}"
-                ocaml_sitelib_from_stdlib="${ocaml_config_from_stdlib}/${ocaml_sitelib_rel}"
+                ocaml_sitelib_from_stdlib="$ocaml_config_from_stdlib"
+                if [ "x$ocamlfind_conf_destdir" != 'x.' ]; then
+                    ocaml_sitelib_from_stdlib="${ocaml_sitelib_from_stdlib}${dir_sep}${ocamlfind_conf_destdir}"
+                fi
                 ocamlfind_conf_from_stdlib="fun p -> $(echo "$d3" | sed -e 's|[^/]\+|Filename.dirname (|g;s|/||g')p$(echo "$d3" | sed -e 's|[^/]\+|)|g;s|/||g')"
             fi
             ;;
@@ -360,31 +387,37 @@ else
         if [ $relative_sitelib -eq 1 ]; then
             ocaml_sitelib="$(dirname "$ocamlfind_config")/$ocaml_sitelib"
             ocaml_sitelib="${ocaml_sitelib%/.}"
+            ocamlfind_conf_destdir="$(dirname "$ocamlfind_config_native")${dir_sep}${ocaml_sitelib_native}"
+        else
+            ocamlfind_conf_destdir="$ocaml_sitelib_native"
         fi
-        ocaml_sitelib_rel="$ocaml_sitelib"
-        ocaml_sitelib_from_stdlib="$ocaml_sitelib"
+        ocaml_sitelib_from_stdlib="$ocaml_sitelib_native"
     fi
 fi
 
 if [ $relocatable_findlib -eq 0 ]; then
-    ocamlpath="${ocaml_sitelib}"
+    ocamlpath="$ocaml_sitelib_native"
     if [ "$ocaml_major" -ge 5 ]; then
         # OCaml 5.0+ installs its own META files under the stdlib directory.
         # If findlib has been configured -sitelib $(ocamlc -where) then there's
         # nothing to do, but otherwise we need to put OCaml's Standard Library
         # into the path setting.
         if [ ! -e "${ocaml_sitelib}/stdlib.cmi" ]; then
-            ocamlpath="${ocaml_core_stdlib}:${ocamlpath}"
+            ocamlpath="${ocaml_core_stdlib_native}${path_sep}${ocamlpath}"
         fi
     fi
 else
-    # $ocaml_sitelib_rel is a relative path not ending with a separator;
+    # $ocamlfind_conf_destdir is a native relative path;
     # $ocaml_core_stdlib_suffix begins a separator; they are both Unix paths.
     # For a typical (opam) setup (with `-sitelib .` passed to configure)
     # $ocamlpath will therefore be './ocaml:.'
-    ocamlpath="${ocaml_sitelib_rel}"
+    ocaml_core_stdlib_suffix=".${ocaml_core_stdlib_suffix}"
+    if [ $use_cygpath -gt 0 ]; then
+        ocaml_core_stdlib_suffix="$(echo "$ocaml_core_stdlib_suffix" | sed -e 's;/;\\;g')"
+    fi
+    ocamlpath="${ocamlfind_conf_destdir}"
     if [ "$ocaml_major" -ge 5 ]; then
-        ocamlpath=".${ocaml_core_stdlib_suffix}:${ocamlpath}"
+        ocamlpath="${ocaml_core_stdlib_suffix}${path_sep}${ocamlpath}"
     fi
 fi
 
@@ -422,6 +455,9 @@ done
 # Set the directory for ocamlfind's manuals:
 
 test -n "$ocamlfind_man" || ocamlfind_man="$ocaml_core_man"
+if [ ${use_cygpath} -gt 0 ]; then
+    cygpath_to_unix ocamlfind_man
+fi
 
 ######################################################################
 # do we have #remove_directory?
@@ -681,7 +717,7 @@ else
         fi
         camlp4_dir=$(camlp4 -where | tr -d '\r')
         if [ ${use_cygpath} -gt 0 ]; then
-            camlp4_dir=$(echo x | env USE_CYGPATH=1 tools/patch x "$camlp4_dir")
+            camlp4_dir=$(echo x | tools/patch x "$camlp4_dir")
             # This makes camlp4_dir a windows path
         elif [ "${pure_mingw}" = "yes" ]; then
             # Must double the backslahes
@@ -808,14 +844,14 @@ fi
 {
     echo "# Makefile.config written by configure"
     echo "OCAML_CORE_STDLIB=${ocaml_core_stdlib}"
+    echo "OCAML_CORE_STDLIB_NATIVE=${ocaml_core_stdlib_native}"
     echo "OCAML_SITELIB=${ocaml_sitelib}"
-    echo "OCAML_SITELIB_FROM_CONFIG=${ocaml_sitelib_rel}"
     echo "OCAML_SITELIB_FROM_STDLIB=${ocaml_sitelib_from_stdlib}"
-    echo "FINDLIB_PATH=${ocamlpath}"
     echo "OCAML_THREADS=${ocaml_threads}"
     echo "OCAMLFIND_BIN=${ocamlfind_bin}"
     echo "OCAMLFIND_MAN=${ocamlfind_man}"
     echo "OCAMLFIND_CONF=${ocamlfind_config}"
+    echo "OCAMLFIND_CONF_NATIVE=${ocamlfind_config_native}"
     echo "OCAMLFIND_CONF_NAME=$(basename "${ocamlfind_config}")"
     echo "CONFIG_FROM_STDLIB=${ocamlfind_conf_from_stdlib}"
     echo "OCAMLFIND_OCAMLFLAGS=${ocamlfind_ocamlflags}"
@@ -827,7 +863,6 @@ fi
     echo "CUSTOM=${custom}"
     echo "PARTS=${parts}"
     echo "INSTALL_TOPFIND=${with_topfind}"
-    echo "USE_CYGPATH=${use_cygpath}"
     echo "HAVE_NATDYNLINK=${have_natdynlink}"
     echo "IS_RELOCATABLE=${relocatable_findlib}"
     echo "RELOCATABLE=${relocatable_ocaml_flag}"
@@ -850,6 +885,10 @@ fi
     echo "INSTALLFILE = install -c"
     echo "# change to INSTALLFILE = cp   when BSD install is unavailable"
 } > Makefile.config
+{
+    echo "destdir=\"$(echo "$ocaml_sitelib_native" | sed -e 's;\\;\\\\;g')\""
+    echo "path=\"$(echo "$ocamlpath" | sed -e 's;\\;\\\\;g')\""
+} > findlib.conf.in
 echo "SITELIB_META=${generated_META}" >Makefile.packages
 
 # All OK

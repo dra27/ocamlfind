@@ -97,12 +97,10 @@ findlib_config_1.mlp: findlib_config.mlp
 	sed -e '/^ax:/d;s/^rx://g' $< > $@
 
 findlib_config.ml: findlib_config_$(IS_RELOCATABLE).mlp $(TOP)/Makefile.config
-	USE_CYGPATH="$(USE_CYGPATH)"; \
-	export USE_CYGPATH; \
 	cat $< | \
-	        $(SH) $(TOP)/tools/patch '@CONFIGFILE@' '$(OCAMLFIND_CONF)' | \
+	        $(SH) $(TOP)/tools/patch '@CONFIGFILE@' '$(OCAMLFIND_CONF_NATIVE)' | \
 	        $(SH) $(TOP)/tools/patch '@CONFIGFILENAME@' '$(OCAMLFIND_CONF_NAME)' | \
-	        $(SH) $(TOP)/tools/patch '@STDLIB@' '$(OCAML_CORE_STDLIB)' | \
+	        $(SH) $(TOP)/tools/patch '@STDLIB@' '$(OCAML_CORE_STDLIB_NATIVE)' | \
 		sed -e 's;@AUTOLINK@;$(OCAML_AUTOLINK);g' \
 		    -e 's;@SYSTEM@;$(SYSTEM);g' \
 	      -e 's;@CONFIG_FROM_STDLIB@;$(CONFIG_FROM_STDLIB);g' \
@@ -129,8 +127,6 @@ topfind_rd11.p: topfind.p
 	sed -e 's/^[4r]x://' $< > $@
 
 topfind: topfind_rd$(OCAML_REMOVE_DIRECTORY)$(IS_RELOCATABLE).p $(TOP)/Makefile.config
-	USE_CYGPATH="$(USE_CYGPATH)"; \
-	export USE_CYGPATH; \
 	cat $< | \
 	        $(SH) $(TOP)/tools/patch '@SITELIB@' '$(OCAML_SITELIB_FROM_STDLIB)' \
 	    	    >topfind
