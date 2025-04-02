@@ -19,7 +19,7 @@ build: [
   [
     "./configure"
     "-bindir" bin
-    "-sitelib" "."
+    "-sitelib" lib
     "-mandir" man
     "-config" "%{lib}%/findlib.conf"
     "-no-custom"
