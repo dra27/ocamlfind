@@ -388,10 +388,11 @@ else
             ocaml_sitelib="$(dirname "$ocamlfind_config")/$ocaml_sitelib"
             ocaml_sitelib="${ocaml_sitelib%/.}"
             ocamlfind_conf_destdir="$(dirname "$ocamlfind_config_native")${dir_sep}${ocaml_sitelib_native}"
+            ocaml_sitelib_from_stdlib="$ocaml_sitelib"
         else
             ocamlfind_conf_destdir="$ocaml_sitelib_native"
+            ocaml_sitelib_from_stdlib="$ocaml_sitelib_native"
         fi
-        ocaml_sitelib_from_stdlib="$ocaml_sitelib_native"
     fi
 fi
 
