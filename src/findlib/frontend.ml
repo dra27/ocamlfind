@@ -226,14 +226,28 @@ let use_package prefix pkgnames =
 ;;
 
 
+type ldconf_entry = {raw: string; eff: string}
 let read_ldconf filename =
   let lines = ref [] in
+  let ldconf_dir = Filename.dirname filename in
   let f = open_in filename in
   try
     while true do
       let line = input_line f in
       if line <> "" then
-	lines := line :: !lines
+        (* "Explicit-relative" lines should be interpreted relative to ld.conf
+           since OCaml 5.4. The interpretation of non-absolute lines in ld.conf
+           prior to OCaml 5.4 was not useful, so this behaviour is done without
+           a version check (which means it also works for the backports of
+           Relocatable OCaml, which include this change). *)
+        let eff =
+          if line = Filename.current_dir_name ||
+             line = Filename.parent_dir_name ||
+             Filename.is_relative line && not (Filename.is_implicit line) then
+            Filename.concat ldconf_dir line
+          else
+            line in
+        lines := {raw = line; eff = eff} :: !lines
     done;
     assert false
   with
@@ -251,7 +265,7 @@ let write_ldconf filename lines new_lines =
   try
     List.iter
       (fun line -> output_string f (line ^ "\n"))
-      (lines @ new_lines);
+      (List.map (fun {raw = line; eff = _} -> line) lines @ new_lines);
     close_out f;
     prerr_endline("Updated " ^ filename);
   with
@@ -306,7 +320,7 @@ let conflict_report incpath pkglist =
     let dll_pairs =
       List.flatten
 	(List.map
-	   (fun dll_dir ->
+           (fun {eff = dll_dir; raw = _} ->
 	      let files =
 		try Array.to_list (Sys.readdir dll_dir)
 		with _ ->
@@ -2138,7 +2152,7 @@ let install_package () =
 	  if !add_files then (
 	    let m1 = Filename.concat !metadir meta_dot_pkg in
 	    let m2 = Filename.concat pkgdir "META" in
-	    if Sys.file_exists m1 then
+            if has_metadir && Sys.file_exists m1 then
 	      m1
 	    else
 	      if Sys.file_exists m2 then
@@ -2153,7 +2167,7 @@ let install_package () =
 
   if not !add_files then (
     (* Check for frequent reasons why installation can go wrong *)
-    if Sys.file_exists (Filename.concat !metadir meta_dot_pkg) then
+    if has_metadir && Sys.file_exists (Filename.concat !metadir meta_dot_pkg) then
       failwith ("Package " ^ !pkgname ^ " is already installed\n - (file " ^ Filename.concat !metadir meta_dot_pkg ^ " already exists)");
 
     if Sys.file_exists (Filename.concat pkgdir "META") then
@@ -2226,11 +2240,14 @@ let install_package () =
        filesystems. So some better check would be nice.
      *)
     let lines = read_ldconf !ldconf in
-    let dlldir_norm = Fl_split.norm_dir dlldir in
+    let dlldir_real = Realpath.realpath dlldir in
+    let dlldir_norm = Fl_split.norm_dir dlldir_real in
     let dlldir_norm_lc = string_lowercase_ascii dlldir_norm in
     let ci_filesys = (Sys.os_type = "Win32") in
     let check_dir d =
-      let d' = Fl_split.norm_dir d in
+      let d_real = try Realpath.realpath d.eff with Unix.Unix_error _ -> "" in
+      let d' = Fl_split.norm_dir d.eff in
+      (d_real = dlldir_real) ||
       (d' = dlldir_norm) || 
         (ci_filesys && string_lowercase_ascii d' = dlldir_norm_lc) in
     if not (List.exists check_dir lines) then
@@ -2398,9 +2415,9 @@ let remove_package () =
         begin
           let lines = read_ldconf !ldconf in
           let d = Fl_split.norm_dir pkgdir in
-          let exists = List.exists (fun p -> Fl_split.norm_dir p = d) lines in
+          let exists = List.exists (fun p -> Fl_split.norm_dir p.eff = d) lines in
           if exists then begin
-            let lines' = List.filter (fun p -> Fl_split.norm_dir p <> d) lines in
+            let lines' = List.filter (fun p -> Fl_split.norm_dir p.eff <> d) lines in
             write_ldconf !ldconf lines' []
           end
         end

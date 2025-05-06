@@ -3,12 +3,9 @@
 (* For Ocaml-3.03 and up, so you can do: #use "topfind" and get a
  * working findlib toploop.
  *)
-
-#directory "@SITELIB@/findlib";;
-  (* OCaml-4.00 requires to have #directory before we load anything *)
-
-#directory "+compiler-libs";;
-  (* For OCaml-4.00. This directory will be later removed from path *)
+4x:
+4x:#directory "+compiler-libs";;
+4x:  (* For OCaml-4.00. This directory will be later removed from path *)
 
 (* First test whether findlib_top is already loaded. If not, load it now.
  * The test works by executing the toplevel phrase "Topfind.reset" and
@@ -23,23 +20,30 @@ let exec_test s =
   with
       _ -> false
 in
+let sitelib_directory = "@SITELIB@" in
+rx:let module Defs = struct
+rx:  external standard_library_default : unit -> string = "%standard_library_default"
+rx:  external stdlib_dirs : string -> string * string option = "caml_sys_get_stdlib_dirs"
+rx:end in
+rx:let stdlib, _ = Defs.stdlib_dirs (Defs.standard_library_default ()) in
+rx:let sitelib_directory = Filename.concat stdlib sitelib_directory in
+(* This must be executed before exec_test is called, as executing Topfind.reset
+   when topfind.cmi is not in the search path creates a permanent error in
+   OCaml 4.00+ and Topfind.add_predicates fails even after loading the .cma *)
+let findlib_directory = Filename.concat sitelib_directory "findlib" in
+let () = Topdirs.dir_directory findlib_directory in
 let is_native =
   (* one of the few observable differences... *)
   Gc.((get()).stack_limit) = 0 in
 let suffix =
   if is_native then "cmxs" else "cma" in
 if not(exec_test "Topfind.reset;;") then (
-  Topdirs.dir_load Format.err_formatter ("@SITELIB@/findlib/findlib." ^ suffix);
-  Topdirs.dir_load Format.err_formatter ("@SITELIB@/findlib/findlib_top." ^ suffix);
+  Topdirs.dir_load Format.err_formatter (findlib_directory ^ "/findlib." ^ suffix);
+  Topdirs.dir_load Format.err_formatter (findlib_directory ^ "/findlib_top." ^ suffix);
 );
 ;;
-
-#remove_directory "+compiler-libs";;
-
-(* Old: *)
-(* #load "@SITELIB@/findlib/findlib.cma";; *)
-(* #load "@SITELIB@/findlib/findlib_top.cma";; *)
-
+4x:
+4x:#remove_directory "+compiler-libs";;
 
 (* The following is always executed. It is harmless if findlib was already
  * initialized
