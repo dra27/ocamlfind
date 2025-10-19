@@ -372,13 +372,16 @@ else
                 ocaml_core_stdlib_suffix="$d3"
                 ocamlfind_conf_destdir="$ocaml_sitelib_native"
                 ocaml_sitelib="$d2"
-                ocaml_config_from_stdlib="$(echo "$d3" | sed -e 's|[^/]\+|..|g')"
+                ocaml_config_from_stdlib="$(echo "$d3" | sed -e 's|[^/]*[^/]|..|g')"
                 ocaml_config_from_stdlib="${ocaml_config_from_stdlib##/}"
                 ocaml_sitelib_from_stdlib="$ocaml_config_from_stdlib"
                 if [ "x$ocamlfind_conf_destdir" != 'x.' ]; then
                     ocaml_sitelib_from_stdlib="${ocaml_sitelib_from_stdlib}${dir_sep}${ocamlfind_conf_destdir}"
                 fi
-                ocamlfind_conf_from_stdlib="fun p -> $(echo "$d3" | sed -e 's|[^/]\+|Filename.dirname (|g;s|/||g')p$(echo "$d3" | sed -e 's|[^/]\+|)|g;s|/||g')"
+                # d3 should be of the form "/.../.../...". Convert all the
+                # characters between slashes to Filaname.dirname and then remove
+                # the slashes. macOS sed doesn't support EREs.
+                ocamlfind_conf_from_stdlib="fun p -> $(echo "$d3" | sed -e 's|[^/]*[^/]|Filename.dirname (|g;s|/||g')p$(echo "$d3" | sed -e 's|[^/]*[^/]|)|g;s|/||g')"
             fi
             ;;
     esac
