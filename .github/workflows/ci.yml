@@ -39,7 +39,7 @@ jobs:
           opam exec -- make all opt
 
       # Check installing with opam
-      - run: opam pin add ocamlfind .
+      - run: opam pin add ocamlfind . --strict
 
       # Test it
       - run: opam exec -- ocamlfind list
