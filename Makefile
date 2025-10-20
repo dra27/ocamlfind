@@ -37,7 +37,7 @@ clean:
 	for p in `cd src; echo *`; do ( cd src/$$p; $(MAKE) clean ); done
 	(cd itest-aux; $(MAKE) clean)
 	(cd tools/extract_args; $(MAKE) clean)
-	rm -f findlib.conf Makefile.packages
+	rm -f findlib.conf Makefile.packages ocamlfind.install
 
 .PHONY: release
 release: README
@@ -48,7 +48,10 @@ README: doc/README
 
 
 .PHONY: all-config
-all-config: findlib.conf
+all-config: findlib.conf ocamlfind.install
+
+ocamlfind.install: ocamlfind.install.in
+	sed -e 's/"[ {}]/$(EXEC_SUFFIX)&/g' $^ > $@
 
 .PHONY: findlib-template
 findlib-template: findlib.conf.in

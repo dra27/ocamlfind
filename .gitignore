@@ -14,6 +14,7 @@ Makefile.config
 Makefile.packages
 findlib.conf
 ocargs.log
+ocamlfind.install
 src/findlib/depend
 src/findlib/findlib_config.ml
 src/findlib/fl_meta.ml
