@@ -51,6 +51,7 @@ f tools/extract_args/extract_args.mll
 f tools/safe_camlp4
 f tools/make-package-macosx
 f tools/patch
+f tools/toplist.ml
 f tools/cmd_from_same_dir
 
 d site-lib-src
