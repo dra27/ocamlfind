@@ -34,6 +34,9 @@ f Makefile.config.pattern
 f itest
 f ocaml-stub
 
+x .github/workflows/ci.yml
+x .github/workflows/toplist.ml
+
 d itest-aux
 f itest-aux/Makefile
 p itest-aux/.*\.ml
