@@ -38,6 +38,9 @@ jobs:
           opam exec -- ${{ runner.os == 'Windows' && 'sh ' || '' }}./configure
           opam exec -- make all opt
 
+      # Temporarily - allow --strict to work
+      - run: opam repo add --all strict git+https://github.com/dra27/opam-repository.git#fix-strict
+
       # Check installing with opam
       - run: opam pin add ocamlfind . --strict
 
