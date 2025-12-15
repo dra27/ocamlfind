@@ -188,6 +188,32 @@ let init
             Fl_metascanner.lookup name config_preds vars
 	  with Not_found -> default
 	in
+        let convert_relative path =
+          let path_dirname = Filename.dirname path in
+          if path_dirname = Filename.current_dir_name &&
+             Filename.basename path = Filename.current_dir_name then
+            (* path = "." || path = "./" *)
+            Filename.dirname config_file
+          else if path_dirname = Filename.current_dir_name &&
+                  not (Filename.is_implicit path) then
+            (* path = "./*" *)
+            let rec split acc dir =
+              let dirname = Filename.dirname dir in
+              let basename = Filename.basename dir in
+              if dirname = Filename.current_dir_name then
+                List.fold_left Filename.concat "" (basename :: acc)
+              else
+                split (Filename.basename dir :: acc) dirname in
+            Filename.concat (Filename.dirname config_file) (split [] path)
+          else if path = Filename.parent_dir_name ||
+                  Filename.is_relative path && not (Filename.is_implicit path) then
+            Filename.concat (Filename.dirname config_file) path
+          else
+            path in
+        let lookup_path name default =
+          let value = Fl_split.path (lookup name default) in
+          List.map convert_relative value in
+        let lookup name default = convert_relative (lookup name default) in
         let config_tuple =
 	  ( (lookup "ocamlc" ocamlc_default),
 	    (lookup "ocamlopt" ocamlopt_default),
@@ -198,7 +224,7 @@ let init
 	    (lookup "ocamldep" ocamldep_default),
 	    (lookup "ocamlbrowser" ocamlbrowser_default),
 	    (lookup "ocamldoc" ocamldoc_default),
-	    Fl_split.path (lookup "path" ""),
+            (lookup_path "path" ""),
 	    (lookup "destdir" ""),
 	    (lookup "metadir" "none"),
 	    (lookup "stdlib" Findlib_config.ocaml_stdlib),

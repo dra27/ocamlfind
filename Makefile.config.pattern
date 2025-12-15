@@ -7,8 +7,7 @@
 # Where the OCAML core is installed:
 #----------------------------------------------------------------------
 OCAML_CORE_STDLIB=/usr/local/lib/ocaml
-OCAML_CORE_BIN=/usr/local/bin
-OCAML_CORE_MAN=/usr/local/man
+OCAML_CORE_STDLIB_NATIVE=$(OCAML_CORE_STDLIB)
 
 #----------------------------------------------------------------------
 # Type of multi-threading support: either vm or posix
@@ -24,9 +23,11 @@ OCAML_THREADS=vm
 OCAML_SITELIB=/usr/local/lib/ocaml/site-lib
 
 #----------------------------------------------------------------------
-# What the path setting will be
+# For Relocatable Findlib, the path of site-lib relative to the OCaml
+# Standard Library directory. For normal Findlib, equal to
+# $(OCAML_SITELIB)
 #----------------------------------------------------------------------
-FINDLIB_PATH=/usr/local/lib/ocaml/site-lib:/usr/local/lib/ocaml
+OCAML_SITELIB_FROM_STDLIB=$(OCAML_SITELIB)
 
 #----------------------------------------------------------------------
 # Where binaries and manual pages will be installed
@@ -37,7 +38,9 @@ OCAMLFIND_MAN=/usr/local/man
 #----------------------------------------------------------------------
 # The absolute location of the configuration file
 #----------------------------------------------------------------------
-OCAMLFIND_CONF=/usr/local/etc/ocamlfind.conf
+OCAMLFIND_CONF=/usr/local/etc/$(OCAMLFIND_CONF_NAME)
+OCAMLFIND_CONF_NATIVE=$(OCAMLFIND_CONF)
+OCAMLFIND_CONF_NAME=ocamlfind.conf
 
 #----------------------------------------------------------------------
 # Autolinking is usually on
@@ -64,6 +67,12 @@ PARTS=findlib findlib-toolbox
 # Whether the "topfind" script is installed in $(OCAML_CORE_STDLIB):
 #----------------------------------------------------------------------
 INSTALL_TOPFIND=1
+
+#----------------------------------------------------------------------
+# Whether Relocatable Findlib is being built
+#----------------------------------------------------------------------
+IS_RELOCATABLE=0
+RELOCATABLE=
 
 #----------------------------------------------------------------------
 # Whether make install should update Makefile.packages just before
